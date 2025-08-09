@@ -16,31 +16,41 @@ const app = express();
 await connectDB();
 await connectCloudinary();
 
-// CORS configuration (must be before any routes or auth middlewares)
+// Allowed origins for CORS
 const allowedOrigins = [
   'http://localhost:5173',              // Local development
   'https://edemyfrontend.vercel.app',   // Your deployed frontend
 ];
 
+// CORS configuration — must be before routes/auth
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
 
-// For most routes (JSON parsing)
+// Handle preflight OPTIONS requests globally
+app.options('*', cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
+
+// JSON body parsing (must be before most routes)
 app.use(express.json());
 
-// Clerk middleware (auth) — after JSON parsing for /clerk
+// Clerk middleware (auth)
 app.use(clerkMiddleware());
 
-// Routes
-app.get('/', (req, res) => res.send("API Working"));
+// Health check route
+app.get('/', (req, res) => res.send("✅ API Working"));
 
 // Webhooks
 app.post('/clerk', express.json(), clerkWebhooks);
@@ -54,5 +64,5 @@ app.use('/api/user', userRouter);
 // Port
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
